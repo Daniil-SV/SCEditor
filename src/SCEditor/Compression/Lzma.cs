@@ -85,6 +85,35 @@
             File.Delete(file);
         }
 
+        internal static byte[] DecompressLZHAM(BinaryReader reader, uint dict_size, uint unpacked_size)
+        {
+            MemoryStream output = new();
+            using (LzhamStream stream = new LzhamStream(reader.BaseStream, new DecompressionParameters { DictionarySize = dict_size }))
+            {
+                stream.CopyTo(output);
+                stream.Dispose();
+            }
+
+            return output.ToArray();
+        }
+
+        internal static byte[] DecompressLZMA(BinaryReader reader)
+        {
+            MemoryStream output = new();
+            Decoder decoder = new();
+
+            byte[] properties = reader.ReadBytes(5);
+            uint output_size = reader.ReadUInt32();
+
+            decoder.SetDecoderProperties(properties);
+            decoder.Code(reader.BaseStream, output, reader.BaseStream.Length - reader.BaseStream.Position, output_size, null);
+
+            output.Flush();
+            output.Close();
+
+            return output.ToArray();
+        }
+
         internal static void Decompress(string file)
         {
             var clone = file + ".clone";

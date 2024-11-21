@@ -111,25 +111,25 @@ namespace SCEditor.ScOld
             return true;
         }
 
-        public override void Read(ScFile swf, BinaryReader br, byte id)
+        public override void Read(ScFile swf, byte id)
         {
-            _offset = br.BaseStream.Position;
-            _textureId = br.ReadByte();
+            _offset = swf.reader.BaseStream.Position;
+            _textureId = swf.reader.ReadByte();
 
             var texture = (Texture) _scFile.GetTextures()[_textureId];
 
             if (texture == null)
                 throw new InvalidOperationException($"Texture {_textureId} wasn't loaded yet.");
 
-            _vertexCount = id == 2 ? 4 : br.ReadByte();
+            _vertexCount = id == 2 ? 4 : swf.reader.ReadByte();
 
             _xy = new PointF[_vertexCount];
             _uv = new PointF[_vertexCount];
 
             for (int i = 0; i < _vertexCount; i++)
             {
-                var x = (float)((float)br.ReadInt32() * 0.05f);
-                var y = (float)((float)br.ReadInt32() * 0.05f);
+                var x = (float)((float)swf.reader.ReadInt32() * 0.05f);
+                var y = (float)((float)swf.reader.ReadInt32() * 0.05f);
                 _xy[i] = new PointF(x, y);
             }
 
@@ -137,8 +137,8 @@ namespace SCEditor.ScOld
             {
                 for (int i = 0; i < _vertexCount; i++)
                 {
-                    var u = (float)((float)br.ReadUInt16() / 65535f) * texture.GetImage().Width;
-                    var v = (float)((float)br.ReadUInt16() / 65535f) * texture.GetImage().Height;
+                    var u = (float)((float)swf.reader.ReadUInt16() / 65535f) * texture.GetImage().Width;
+                    var v = (float)((float)swf.reader.ReadUInt16() / 65535f) * texture.GetImage().Height;
 
                     //var u = br.ReadUInt16();
                     //var v = br.ReadUInt16();
@@ -150,8 +150,8 @@ namespace SCEditor.ScOld
             {
                 for (int i = 0; i < _vertexCount; i++)
                 {
-                    float u = (float)((float)br.ReadUInt16()); // image.Width);
-                    float v = (float)((float)br.ReadUInt16()); // image.Height);//(short) (65535 * br.ReadInt16() / image.Height);
+                    float u = (float)((float)swf.reader.ReadUInt16()); // image.Width);
+                    float v = (float)((float)swf.reader.ReadUInt16()); // image.Height);//(short) (65535 * br.ReadInt16() / image.Height);
 
                     //float u = (ushort)(0xFFFFL * br.ReadUInt16() / texture._image.Width);
                     //float v = (ushort)(0xFFFFL * br.ReadUInt16() / texture._image.Height);

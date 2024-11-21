@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Accord.Imaging.Filters;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -38,11 +39,34 @@ namespace SCEditor.Compression
             File.Delete(file);
         }
 
-        internal static void decompress(string file)
+        internal static byte[] Decompress(byte[] data)
         {
-            using (MemoryStream output = new MemoryStream())
+            MemoryStream data_stream = new(data);
+            return Decompress(data_stream);
+        }
+
+        internal static byte[] Decompress(BinaryReader reader)
+        {
+            return Decompress(reader.BaseStream);
+        }
+
+        internal static byte[] Decompress(Stream reader)
+        {
+            MemoryStream output = new();
+            DecompressionStream decompressionStream = new(reader);
+
+            decompressionStream.CopyTo(output);
+            decompressionStream.Close();
+            decompressionStream.Dispose();
+
+            return output.ToArray();
+        }
+
+        internal static void Decompress(string file)
+        {
+            using (MemoryStream output = new())
             {
-                using (FileStream input = new FileStream(file, FileMode.Open))
+                using (FileStream input = new(file, FileMode.Open))
                 {
                     input.Position = 5;
 

@@ -54,7 +54,7 @@ namespace SCEditor.ScOld
                 {
                     var packetId = br.ReadByte();
                     var packetSize = br.ReadUInt32();
-                    this.Read(null, br, packetId);
+                    this.Read(null, packetId);
                 }
             }
 
@@ -316,42 +316,42 @@ namespace SCEditor.ScOld
 
         }
 
-        public sealed override void Read(ScFile swf, BinaryReader br, byte id)
+        public sealed override void Read(ScFile swf, byte tag)
         {
-            _shapeId = br.ReadUInt16();
-            _shapeChunkCount = br.ReadUInt16();
+            _shapeId = swf.reader.ReadUInt16();
+            _shapeChunkCount = swf.reader.ReadUInt16();
 
             for (int i = 0; i < _shapeChunkCount; i++)
             {
                 _chunks.Add(new ShapeChunk(_scFile));
             }
 
-            _shapeChunkVertexCount = id == 2 ? 4 * _shapeChunkCount : br.ReadUInt16();
+            _shapeChunkVertexCount = tag == 2 ? 4 * _shapeChunkCount : swf.reader.ReadUInt16();
 
             int index = 0;
 
             while (true)
             {
-                byte chunkType;
+                byte command_tag;
                 while (true)
                 {
-                    chunkType = br.ReadByte();
-                    _length = (uint)br.ReadInt32();
+                    command_tag = swf.reader.ReadByte();
+                    _length = (uint)swf.reader.ReadInt32();
 
                     if (_length < 0)
                         throw new Exception("Negative tag length in Shape.");
 
-                    if (chunkType == 17 || chunkType == 22)
+                    if (command_tag == 17 || command_tag == 22)
                     {
                         ShapeChunk chunk = (ShapeChunk)_chunks[index];
                         chunk.SetChunkId((ushort)index);
                         chunk.SetShapeId(_shapeId);
-                        chunk.SetChunkType(chunkType);
-                        chunk.Read(swf, br, id);
+                        chunk.SetChunkType(command_tag);
+                        chunk.Read(swf, tag);
 
                         index++;
                     }
-                    else if (chunkType == 6)
+                    else if (command_tag == 6)
                     {
                         throw new Exception("SupercellSWF::TAG_SHAPE_DRAW_COLOR_FILL_COMMAND not supported");
                     }
@@ -361,11 +361,11 @@ namespace SCEditor.ScOld
                     }
                 }
 
-                if (chunkType == 0)
+                if (command_tag == 0)
                     break;
 
-                Console.WriteLine("Unmanaged chunk type " + chunkType);
-                br.ReadBytes((int)_length);
+                Console.WriteLine("Unmanaged chunk type " + command_tag);
+                swf.reader.ReadBytes((int)_length);
             }
         }
 

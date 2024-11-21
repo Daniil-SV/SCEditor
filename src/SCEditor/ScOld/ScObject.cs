@@ -73,12 +73,12 @@ namespace SCEditor.ScOld
 
         public virtual Bitmap Render(RenderingOptions options) => null;
 
-        public virtual void Read(ScFile swf, BinaryReader br , byte packetid)
+        public virtual void Read(ScFile swf, byte tag)
         {
             // Space
         }
 
-        public virtual ushort ReadMV(BinaryReader br, byte id, uint length)
+        public virtual ushort ReadMV(BinaryReader br, byte tag, uint length)
         {
             return Id;
         }

@@ -17,10 +17,10 @@ namespace SCEditor.ScOld
             this._scFile = scfile;
         }
 
-        public override void Read(ScFile swf, BinaryReader rd, byte tag)
+        public override void Read(ScFile swf, byte tag)
         {
             _tag = tag;
-            Id = rd.ReadUInt16();
+            Id = swf.reader.ReadUInt16();
         }
 
         public byte Tag => _tag;

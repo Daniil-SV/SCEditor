@@ -13,6 +13,7 @@ using SCEditor.ScOld.ImageEncoder;
 using Accord.Imaging.Filters;
 using System.Windows.Media.Media3D;
 using ZstdSharp;
+using SCEditor.Compression;
 
 namespace SCEditor.ScOld
 {
@@ -69,7 +70,7 @@ namespace SCEditor.ScOld
             _disposed = true;
         }
         
-        public abstract void ReadImage(uint packetID, uint packetSize, BinaryReader br);
+        public abstract void ReadImage(ScFile swf, uint tag);
         public abstract void WriteImage(Stream bw);
     }
 
@@ -118,16 +119,14 @@ namespace SCEditor.ScOld
             return pixelData;
         }
 
-        public override unsafe void ReadImage(uint packetID, uint packetSize, BinaryReader br)
+        public override unsafe void ReadImage(ScFile swf, uint tag)
         {
-            Width = br.ReadUInt16();
-            Height = br.ReadUInt16();
-            Is32x32 = (packetID - 27) < 3;
+            Is32x32 = (tag - 27) < 3;
 
             byte[] pixelData;
             if (KtxSize != 0)
             {
-                byte[] ktxBytes = br.ReadBytes((int)KtxSize);
+                byte[] ktxBytes = swf.reader.ReadBytes((int)KtxSize);
                 pixelData = LoadKhronosTexture(ktxBytes);
             } else if (ExternalTexture != "")
             {
@@ -140,25 +139,18 @@ namespace SCEditor.ScOld
 
                 if (extension == ".zktx")
                 {
-                    using (MemoryStream output = new MemoryStream())
-                    {
-                        using (FileStream input = new FileStream(ExternalTexture, FileMode.Open))
-                        {
-                            using (var decompressionStream = new DecompressionStream(input))
-                            {
-                                decompressionStream.CopyTo(output);
-                                decompressionStream.Close();
-                                decompressionStream.Dispose();
-                            }
-                        }
+                    byte[] filedata = File.ReadAllBytes(ExternalTexture);
+                    pixelData = LoadKhronosTexture(zstandard.Decompress(filedata));
 
-                        pixelData = LoadKhronosTexture(output.GetBuffer());
-                    }
                 } else if (extension == ".ktx")
                 {
                     var ktxBytes = File.ReadAllBytes(ExternalTexture);
                     pixelData = LoadKhronosTexture(ktxBytes);
-                } else
+                } else if (extension == ".sctx")
+                {
+                    pixelData = null;
+                }
+                else
                 {
                     throw new Exception($"Unknown file type: {ExternalTexture}");
                 }
@@ -166,7 +158,7 @@ namespace SCEditor.ScOld
             }
             else
             {
-                pixelData = br.ReadBytes(Width * Height * TFormat.PixelSize);
+                pixelData = swf.reader.ReadBytes(Width * Height * TFormat.PixelSize);
             }
             
             Bitmap = new Bitmap(Width, Height, PixelFormat.Format32bppArgb);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SCEditor.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -27,7 +28,6 @@ namespace SCEditor.ScOld
         private ushort _transform1;
         private ushort _unk46;
         private ScFile _scFile;
-        private byte _dataType;
         private bool _wideCodes;
         private bool _modifier5;
         private bool _italic;
@@ -49,12 +49,6 @@ namespace SCEditor.ScOld
             _scFile = scFile;
         }
 
-        public TextField(ScFile scFile, byte dataType)
-        {
-            _scFile = scFile;
-            _dataType = dataType;
-        }
-
         public TextField(ScFile scFile, TextField data, ushort id)
         {
             Id = id;
@@ -73,7 +67,6 @@ namespace SCEditor.ScOld
             _transform1 = data._transform1;
             _unk46 = data._unk46;
             _scFile = scFile;
-            _dataType = data._dataType;
             _wideCodes = data._wideCodes;
             _modifier5 = data._modifier5;
             _italic = data._italic;
@@ -95,14 +88,14 @@ namespace SCEditor.ScOld
             return "TextFields";
         }
 
-        public override void Read(ScFile swf, BinaryReader br, byte packetid)
+        public override void Read(ScFile swf, byte tag)
         {
-            Id = br.ReadUInt16();
+            Id = swf.reader.ReadUInt16();
 
-            byte stringLength = br.ReadByte();
+            byte stringLength = swf.reader.ReadByte();
             if (stringLength < 255)
             {
-                _fontName = Encoding.ASCII.GetString(br.ReadBytes(stringLength));
+                _fontName = Encoding.ASCII.GetString(swf.reader.ReadBytes(stringLength));
             }
 
             if (!string.IsNullOrEmpty(_fontName))
@@ -111,81 +104,81 @@ namespace SCEditor.ScOld
                     _scFile.addFontName(_fontName);
             }
 
-            _fontColor = readColor(br);
+            _fontColor = swf.reader.ReadColor();
 
-            if (br.ReadBoolean())
+            if (swf.reader.ReadBoolean())
             {
                 _flag |= 4; // 153
                 _italic = true;
             } 
-            if (br.ReadBoolean())
+            if (swf.reader.ReadBoolean())
             {
                 _flag |= 8; // 154
                 _ansi = true;
             } 
-            if (br.ReadBoolean())
+            if (swf.reader.ReadBoolean())
             {
                 _flag |= 16; // 155
                 _shiftJIS = true;
             }
 
-            _modifier4 = br.ReadBoolean(); // 156
-            _fontWidth = br.ReadByte(); // 168 42 > related to matrix
-            _fontSize = br.ReadByte(); // 172 43
-            _leftCorner = br.ReadUInt16(); // 176 44 
-            _topCorner = br.ReadUInt16(); // 180 45
-            _rightCorner = br.ReadUInt16(); // 184 46
-            _bottomCorner = br.ReadUInt16(); // 188 47
+            _modifier4 = swf.reader.ReadBoolean(); // 156
+            _fontWidth = swf.reader.ReadByte(); // 168 42 > related to matrix
+            _fontSize = swf.reader.ReadByte(); // 172 43
+            _leftCorner = swf.reader.ReadUInt16(); // 176 44 
+            _topCorner = swf.reader.ReadUInt16(); // 180 45
+            _rightCorner = swf.reader.ReadUInt16(); // 184 46
+            _bottomCorner = swf.reader.ReadUInt16(); // 188 47
 
-            if (br.ReadBoolean())
+            if (swf.reader.ReadBoolean())
             {
                 _flag |= 2; // 152
                 _modifier5 = true;
             }
                 
-            byte stringLength2 = br.ReadByte();
+            byte stringLength2 = swf.reader.ReadByte();
             if (stringLength2 < 255)
             {
-                _textData = Encoding.ASCII.GetString(br.ReadBytes(stringLength2)); // 196
+                _textData = Encoding.ASCII.GetString(swf.reader.ReadBytes(stringLength2)); // 196
             }
 
-            if (packetid == 7)
+            if (tag == 7)
                 return;
 
-            if (br.ReadBoolean())
+            if (swf.reader.ReadBoolean())
             {
                 _flag |= 1;
                 _wideCodes = true;
             }
                 
-            switch (packetid)
+            switch (tag)
             {
                 case 20:
                     _flag |= 32;
                     break;
                 case 21:
                     _flag |= 32;
-                    _fontOutlineColor = readColor(br);
+                    _fontOutlineColor = swf.reader.ReadColor();
                     break;
                 case 25:
-                    _fontOutlineColor = readColor(br);
+                    _fontOutlineColor = swf.reader.ReadColor();
                     break;
 
                 case 33:
                 case 43:
                 case 44:
-                    _fontOutlineColor = readColor(br);
-                    _transform1 = br.ReadUInt16();
-                    _transform2 = br.ReadUInt16();
+                    _fontOutlineColor = swf.reader.ReadColor();
+                    _transform1 = swf.reader.ReadUInt16();
+                    _transform2 = swf.reader.ReadUInt16();
                     _flag |= 32;
 
-                    if (packetid == 43 || packetid == 44)
+                    if (tag == 43 || tag == 44)
                     {
-                        _unk46tmp = br.ReadUInt16();
+                        _unk46tmp = swf.reader.ReadUInt16();
                         _unk46 = (ushort)(((uint)(0x7FFF * _unk46tmp + ((-40656255836343L * _unk46tmp) >> 32)) >> 31) + ((uint)(0x7FFF * _unk46tmp + ((-40656255836343L * _unk46tmp) >> 32)) >> 8));
                     }
 
-                    if (packetid == 44 && br.ReadBoolean())
+                    if (tag == 44 && swf.reader.ReadBoolean())
                     {
                         _flag |= 64;
                         _flag64 = true;
@@ -195,31 +188,15 @@ namespace SCEditor.ScOld
             }
         }
 
-        private Color readColor(BinaryReader br)
-        {
-            byte cB = br.ReadByte();
-            byte cG = br.ReadByte();
-            byte cR = br.ReadByte();
-            byte cA = br.ReadByte();
-            return Color.FromArgb(cA, cR, cG, cB);
-        }
-
-        private void writeColor(Stream input, Color c)
-        {
-            input.WriteByte(c.B);
-            input.WriteByte(c.G);
-            input.WriteByte(c.R);
-            input.WriteByte(c.A);
-        }
-
         public override void Write(FileStream input)
         {
             if (customAdded)
             {
                 input.Seek(_scFile.GetEofOffset(), SeekOrigin.Begin);
+                byte tag = GetTag();
 
                 // DataType and Length
-                input.WriteByte(_dataType);
+                input.WriteByte(tag);
                 input.Write(BitConverter.GetBytes(0), 0, 4);
 
                 int dataLength = 0;
@@ -244,7 +221,7 @@ namespace SCEditor.ScOld
                 dataLength += 1;
 
                 // REST OF DATA
-                writeColor(input, _fontColor);
+                input.WriteColor(_fontColor);
                 dataLength += 4;
 
                 input.Write(BitConverter.GetBytes(_italic), 0, 1);
@@ -279,12 +256,12 @@ namespace SCEditor.ScOld
                 }
                 dataLength += 1;
 
-                if (_dataType != 7)
+                if (tag != 7)
                 {
                     input.Write(BitConverter.GetBytes(_wideCodes), 0, 1);
                     dataLength += 1;
 
-                    switch(_dataType)
+                    switch(tag)
                     {
                         case 20:
                             // flag32
@@ -292,25 +269,25 @@ namespace SCEditor.ScOld
 
                         case 21:
                         case 25:
-                            writeColor(input, _fontOutlineColor);
+                            input.WriteColor(_fontOutlineColor);
                             dataLength += 4;
                             break;
 
                         case 33:
                         case 43:
                         case 44:
-                            writeColor(input, _fontOutlineColor);
+                            input.WriteColor(_fontOutlineColor);
                             input.Write(BitConverter.GetBytes(_transform1), 0, 2);
                             input.Write(BitConverter.GetBytes(_transform2), 0, 2);
                             dataLength += 8;
 
-                            if (_dataType == 43 || _dataType == 44)
+                            if (tag == 43 || tag == 44)
                             {
                                 input.Write(BitConverter.GetBytes(_unk46tmp), 0, 2);
                                 dataLength += 2;
                             }
 
-                            if (_dataType == 44)
+                            if (tag == 44)
                             {
                                 input.Write(BitConverter.GetBytes(_flag64), 0, 1);
                                 dataLength += 1;
@@ -409,6 +386,11 @@ namespace SCEditor.ScOld
         public void setId(ushort id)
         {
             Id = id;
+        }
+
+        public byte GetTag()
+        {
+            return 0;
         }
     }
 }

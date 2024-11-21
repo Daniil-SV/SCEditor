@@ -157,12 +157,12 @@ namespace SCEditor.ScOld
             return exportResult;
         }
 
-        public unsafe override ushort ReadMV(BinaryReader br, byte packetId, uint length)
+        public unsafe override ushort ReadMV(BinaryReader br, byte tag, uint length)
         {
             _clipId = br.ReadUInt16();
             _framePerSeconds = br.ReadByte();
             _frameCount = br.ReadInt16();
-            if (packetId == 49)
+            if (tag == 49)
             {
                 CustomProperties = new();
                 var customPropertyCount = br.ReadByte();
@@ -183,14 +183,14 @@ namespace SCEditor.ScOld
             }
 
             _length = length;
-            _packetId = packetId;
+            _packetId = tag;
 
-            if (packetId == 14)
+            if (tag == 14)
             {
                 throw new Exception("TAG_MOVIE_CLIP_4 no longer supported");
             }
 
-            if (packetId == 3)
+            if (tag == 3)
             {
                 throw new Exception("TAG_MOVIE_CLIP no longer supported");
             }
@@ -216,7 +216,7 @@ namespace SCEditor.ScOld
             _timelineChildrenId = new ushort[count];
             br.Read(MemoryMarshal.Cast<ushort, byte>((Span<ushort>)_timelineChildrenId));
 
-            if (packetId == 12 || packetId >= 35 )
+            if (tag == 12 || tag >= 35 )
             {
                 _flags = new byte[count];
                 br.Read(_flags, 0, count);

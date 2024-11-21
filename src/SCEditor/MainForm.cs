@@ -20,6 +20,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static SCEditor.ScOld.MovieClip;
 using System.Diagnostics;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace SCEditor
 {
@@ -85,32 +86,30 @@ namespace SCEditor
                 Title = @"Please select your infomation file",
                 Filter = @"SC File (*.sc)|*.sc|All files (*.*)|*.*",
             };
-            var dialog2 = new OpenFileDialog()
-            {
-                Title = @"Please select your texture file",
-                Filter = @"Texture SC File (*_tex.sc)|*_tex.sc|All files (*.*)|*.*",
-
-            };
+            //var dialog2 = new OpenFileDialog()
+            //{
+            //    Title = @"Please select your texture file",
+            //    Filter = @"Texture SC File (*_tex.sc)|*_tex.sc|All files (*.*)|*.*",
+            //
+            //};
             DialogResult result = dialog.ShowDialog();
-            if (result == DialogResult.OK)
+            if (result != DialogResult.OK)
             {
-                DialogResult result2 = dialog2.ShowDialog();
-                if (result2 == DialogResult.OK)
-                {
-                    try
-                    {
-                        if (_scFile != null)
-                        {
-                            await stopRendering();
-                        }
+                return;
+            }
 
-                        LoadSc(dialog.FileName, dialog2.FileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.ToString());
-                    }
+            try
+            {
+                if (_scFile != null)
+                {
+                    await stopRendering();
                 }
+
+                LoadSc(dialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
             }
         }
 
@@ -178,12 +177,10 @@ namespace SCEditor
         }
 
         // Creates a new instance of the Decoder object and loads the decompressed SC files.
-        private void LoadSc(string fileName, string textureFile)
+        private void LoadSc(string fileName)
         {
-            _scFile = new ScFile(fileName, textureFile);
+            _scFile = new ScFile(fileName);
             _scFile.Load();
-
-            //var scfile = ScFile.Load(fileName, ScFormatVersion.Version7);
 
             treeView1.Nodes.Clear();
 
@@ -650,7 +647,7 @@ namespace SCEditor
                     fileTex.Close();
 
                     // Add Starting Data
-                    ScFile _newScFile = new ScFile(sfd.FileName, texFile);
+                    ScFile _newScFile = new ScFile(sfd.FileName);
                     //Texture _defaultTexture = new Texture(0,800,800);
                     //_newScFile.AddTexture(_defaultTexture);
 

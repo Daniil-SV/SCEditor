@@ -7,6 +7,8 @@ using System.Drawing;
 using System.Windows;
 using SCEditor.ScOld.ImageFormats;
 using SCEditor.Sc;
+using SCEditor.Helpers;
+using System.Windows.Media.Media3D;
 
 namespace SCEditor.ScOld
 {
@@ -94,7 +96,7 @@ namespace SCEditor.ScOld
 
         #region Fields & Properties
 
-        internal byte PacketId;
+        internal byte tag;
         internal byte _imageType;
         internal ushort _textureId;
         internal uint _packetSize;
@@ -135,7 +137,7 @@ namespace SCEditor.ScOld
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("TextureId: " + _textureId);
-            sb.AppendLine("Packet Id: " + PacketId);
+            sb.AppendLine("Packet Id: " + tag);
             sb.AppendLine("Is 32x32: " + _image.Is32x32.ToString());
             sb.AppendLine("ImageType: " + _imageType);
             sb.AppendLine("ImageFormat: " + _image.ImageFormat);
@@ -181,26 +183,29 @@ namespace SCEditor.ScOld
 
             _disposed = true;
         }
-        public void Read(ScFile swf, byte packetID, uint packetSize, BinaryReader br)
+        public void Read(ScFile swf, byte tag, bool has_data)
         {
-            this.PacketId = packetID;
-            this._packetSize = packetSize;
+            this.tag = tag;
 
-            uint bufferSize = packetID == 45 ? br.ReadUInt32() : 0;
+            uint bufferSize = tag == 45 ? swf.reader.ReadUInt32() : 0;
             string externalFilePath = "";
-            if (packetID == 47)
+            if (tag == 47)
             {
-                var texturePath = "";
-                byte stringLength = br.ReadByte();
-                if (stringLength < 255)
-                {
-                    texturePath = Encoding.ASCII.GetString(br.ReadBytes(stringLength));
-                }
+                var texturePath = swf.reader.ReadStringSC();
+
                 var basepath = Path.GetDirectoryName(swf.GetTextureFileName());
                 externalFilePath = Path.Join(basepath, texturePath);
             }
 
-            _imageType = br.ReadByte();
+            _imageType = swf.reader.ReadByte();
+            ushort width = swf.reader.ReadUInt16();
+            ushort height = swf.reader.ReadUInt16();
+
+            if (!has_data) return;
+
+            Console.WriteLine("pixelFormat: " + _imageType);
+            Console.WriteLine("width: " + width);
+            Console.WriteLine("height: " + height);
 
             if (s_imageTypes.ContainsKey(_imageType))
                 _image = (ScImage)Activator.CreateInstance(s_imageTypes[_imageType]);
@@ -209,7 +214,9 @@ namespace SCEditor.ScOld
 
             _image.KtxSize = bufferSize;
             _image.ExternalTexture = externalFilePath;
-            _image.ReadImage(packetID, packetSize, br);
+            _image.Width = width;
+            _image.Height = height;
+            _image.ReadImage(swf, tag);
         }
 
         public override Bitmap Render(RenderingOptions options)
@@ -242,7 +249,7 @@ namespace SCEditor.ScOld
 
             UInt32 packetSize = (uint) ((_image.Width) * (_image.Height) * bytesForPXFormat) + 5;
 
-            _image.Is32x32 = Math.Abs((this.PacketId - 27)) < 3;
+            _image.Is32x32 = Math.Abs((this.tag - 27)) < 3;
 
             if (_offset < 0) // New
             { 
@@ -275,7 +282,7 @@ namespace SCEditor.ScOld
 
                             if (tex.Id == this.Id)
                             {
-                                newTexData.WriteByte(this.PacketId);
+                                newTexData.WriteByte(this.tag);
                                 newTexData.Write(BitConverter.GetBytes(packetSize), 0, 4);
                                 newTexData.WriteByte(_imageType);
                                 _image.WriteImage(newTexData);
@@ -331,7 +338,7 @@ namespace SCEditor.ScOld
                         input.Read(newData, 0, newData.Length);
                         newTexData.Write(newData, 0, newData.Length);
 
-                        newTexData.WriteByte(Convert.ToByte(this.PacketId));
+                        newTexData.WriteByte(Convert.ToByte(this.tag));
 
                         newTexData.Write(BitConverter.GetBytes(packetSize), 0, 4);
                         newTexData.WriteByte(_imageType);

@@ -72,40 +72,43 @@ namespace SCEditor.Features
         {
             var dialog = new OpenFileDialog()
             {
-                Title = @"Please select your infomation file",
+                Title = @"Please select your file",
                 Filter = @"SC File (*.sc)|*.sc|All files (*.*)|*.*",
             };
-            var dialog2 = new OpenFileDialog()
-            {
-                Title = @"Please select your texture file",
-                Filter = @"Texture SC File (*_tex.sc)|*_tex.sc|All files (*.*)|*.*",
 
-            };
+            //var dialog2 = new OpenFileDialog()
+            //{
+            //    Title = @"Please select your texture file",
+            //    Filter = @"Texture SC File (*_tex.sc)|*_tex.sc|All files (*.*)|*.*",
+            //
+            //};
 
             DialogResult result = dialog.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                DialogResult result2 = dialog2.ShowDialog();
-                if (result2 != DialogResult.OK)
-                {
-                    return false;
-                }
-            }
-            else
+            //if (result == DialogResult.OK)
+            //{
+            //    DialogResult result2 = dialog2.ShowDialog();
+            //    if (result2 != DialogResult.OK)
+            //    {
+            //        return false;
+            //    }
+            //}
+            //else
+            //{
+            //    return false;
+            //}
+
+            if (result != DialogResult.OK)
             {
                 return false;
             }
 
             string importScFileInfo = dialog.FileName;
-            string importScFileTex = dialog2.FileName;
-
-            scToImportFrom = new ScFile(importScFileInfo, importScFileTex);
+            //string importScFileTex = dialog2.FileName;
+            scToImportFrom = new ScFile(importScFileInfo);
 
             try
             {
-                if (importScFileInfo != importScFileTex)
-                    scToImportFrom.LoadTextureFile();
-                scToImportFrom.LoadFile();
+                scToImportFrom.Load();
             }
             catch (Exception ex)
             {
